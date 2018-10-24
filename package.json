@@ -1,0 +1,26 @@
+{
+  "name": "wordpress-to-sanity",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@sanity/client": "^0.132.8",
+    "@sanity/import": "^0.132.8",
+    "@sanity/block-tools": "^0.132.8",
+    "@sanity/schema": "^0.132.8",
+    "cheerio": "^1.0.0-rc.2",
+    "jsdom": "^12.0.0",
+    "sanitize-html": "^1.18.4",
+    "xml-stream": "^0.4.5"
+  },
+  "devDependencies": {
+    "eslint": "^5.5.0",
+    "eslint-config-prettier": "^3.0.1",
+    "eslint-config-sanity": "^0.132.5"
+  }
+}
