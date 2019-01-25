@@ -1,77 +1,79 @@
-const {
-  JSDOM
-} = require('jsdom');
-const Schema = require('@sanity/schema').default;
-const blockTools = require('@sanity/block-tools').default;
-const sanitizeHTML = require('sanitize-html')
+const { JSDOM } = require('jsdom')
+const blockTools = require('@sanity/block-tools').default
+const sanitizeHTML = require('./sanitizeHTML')
+const defaultSchema = require('../../schema/defaultSchema')
 
+const blockContentType = defaultSchema
+  .get('blogPost')
+  .fields.find(field => field.name === 'body').type
 
-
-const schema = Schema.compile({
-  name: 'default',
-  types: [{
-    type: 'object',
-    name: 'mock',
-    fields: [{
-      title: 'Body',
-      name: 'body',
-      type: 'array',
-      of: [{
-        type: 'block'
-      }, {
-        type: 'image'
-      }],
-    }, ],
-  }, ],
-});
-
-const blockContentType = schema
-  .get('mock')
-  .fields.find(field => field.name === 'body').type;
-
-const extractImages = (el, next) => {
-  if (
-    el.tagName === 'P' &&
-    el.childNodes.length === 1 &&
-    el.childNodes[0].tagName === 'IMG'
-  ) {
-    return {
-      _sanityAsset: `image@${el.childNodes[0]
-        .getAttribute('src')
-        .replace(/^\/\//, 'https://')}`,
-    };
-  }
-
-  // Only convert block-level images, for now
-  return undefined;
-};
-
-function htmlToBlocks(html, options) {
+function htmlToBlocks (html, options) {
   if (!html) {
-    return [];
+    return []
   }
-  const sanitizedHTML = sanitizeHTML(html, {
-    allowedTags: ['h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'br', 'p', 'a', 'ul', 'ol',
-      'nl', 'li', 'b', 'i', 'strong', 'em', 'strike', 'code', 'hr', 'div',
-      'table', 'thead', 'caption', 'tbody', 'tr', 'th', 'td', 'pre', 'video', 'audio'
-    ]
-  })
 
-  const blocks = blockTools.htmlToBlocks(sanitizedHTML, {
-    rules: [{
-      deserialize: extractImages
-    }],
-    blockContentType,
+  const blocks = blockTools.htmlToBlocks(sanitizeHTML(html), blockContentType, {
     parseHtml: htmlContent => new JSDOM(htmlContent).window.document,
-  });
+    rules: [
+      {
+        deserialize (el, next, block) {
+          // Special case for code blocks (wrapped in pre and code tag)
+          if (el.tagName.toLowerCase() !== 'pre') {
+            return undefined
+          }
+          const code = el.children[0]
+          let text = ''
+          if (code) {
+            const childNodes =
+              code && code.tagName.toLowerCase() === 'code'
+                ? code.childNodes
+                : el.childNodes
+            childNodes.forEach(node => {
+              text += node.textContent
+            })
+          } else {
+            text = el.textContent
+          }
+          if(!text) {
+            return undefined
+          }
+          return block({
+            children: [],
+            _type: 'code',
+            text: text
+          })
+        }
+      },
+      {
+        deserialize (el, next, block) {
+          if (el.tagName === 'IMG') {
+            return block({
+                children: [],
+                _sanityAsset: `image@${el
+                  .getAttribute('src')
+                  .replace(/^\/\//, 'https://')}`
+            })
+          }
 
-  return blocks;
-};
-
-
-
-module.exports = item => {
-  const bodyHTML = item['content:encoded']
-  const body = htmlToBlocks(bodyHTML)
-  return body
+          if (
+            el.tagName.toLowerCase() === 'p' &&
+            el.childNodes.length === 1 &&
+            el.childNodes.tagName &&
+            el.childNodes[0].tagName.toLowerCase() === 'img'
+          ) {
+            return block({
+                _sanityAsset: `image@${el.childNodes[0]
+                  .getAttribute('src')
+                  .replace(/^\/\//, 'https://')}`
+            })
+          }
+          // Only convert block-level images, for now
+          return undefined
+        }
+      }
+    ],
+  })
+  return blocks
 }
+
+module.exports = bodyHTML => htmlToBlocks(bodyHTML)
