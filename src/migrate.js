@@ -39,9 +39,6 @@ async function buildJSONfromStream (stream) {
     })
 
     /**
-     * Get the categories
-     */
-    /**
      * Collate unique categories and tags
      */
     const categories = [];
