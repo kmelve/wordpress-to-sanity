@@ -9,7 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@sanity/block-tools": "^0.139.6",
+    "@sanity/block-tools": "^1.149.0",
     "@sanity/client": "^0.139.0",
     "@sanity/import": "^0.139.1",
     "@sanity/schema": "^0.139.6",

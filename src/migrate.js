@@ -15,6 +15,10 @@ function generateCategoryId (id) {
   return `category-${id}`
 }
 
+function generateTagId(id) {
+  return `tag-${id}`
+}
+
 function readFile (path = '') {
   if (!path) {
     return console.error('You need to set path')
@@ -37,15 +41,35 @@ async function buildJSONfromStream (stream) {
     /**
      * Get the categories
      */
-    const categories = []
+    /**
+     * Collate unique categories and tags
+     */
+    const categories = [];
+    const tags = [];
     xml.on('endElement: category', wpCategory => {
-      const { nicename } = wpCategory.$
-      const category = {
-        _type: 'category',
-        _id: generateCategoryId(nicename),
-        title: nicename
+      const { nicename, domain } = wpCategory.$
+
+      // Unique categories only, no tags
+      if (domain === 'category' && !categories.find(cat => cat.title === nicename)) {
+        const category = {
+          _type: 'category',
+          _id: generateCategoryId(nicename),
+          title: nicename
+        }
+
+        categories.push(category)
       }
-      categories.push(category)
+
+      // Unique tags only, no categories
+      if (domain === 'post_tag' && !tags.find(tag => tag.title === nicename)) {
+        const tag = {
+          _type: 'tag',
+          _id: generateTagId(nicename),
+          title: nicename
+        }
+
+        tags.push(tag)
+      }
     })
 
     /**
@@ -70,21 +94,17 @@ async function buildJSONfromStream (stream) {
      */
     const posts = []
     xml.collect('wp:postmeta')
+    xml.collect('category')
     xml.on('endElement: item', item => {
-      const { title, category, link: permalink, description } = item
+      const { title, category, description } = item
       if (item['wp:post_type'] != 'post' && item['wp:post_type'] != 'page') { return }
       const post = {
         _type: 'post',
+        _id: `post-${item['wp:post_id']}`,
         title,
         slug: {
-          current: slugify(title, { lower: true })
+          current: item['wp:post_name']
         },
-        categories: [
-          {
-            _type: 'reference',
-            _ref: generateCategoryId(category.$.nicename)
-          }
-        ],
         description,
         body: parseBody(item['content:encoded']),
         publishedAt: parseDate(item)
@@ -94,6 +114,32 @@ async function buildJSONfromStream (stream) {
         },
         */
       }
+
+      const postCategories = [];
+      const postTags = [];
+
+      // Add categories and tags as arrays of references
+      if (category.length > 0) {
+        category.forEach(cat => {
+          if (cat.$.domain === 'category') {
+            postCategories.push({
+              _type: 'category',
+              _ref: generateCategoryId(cat.$.nicename)
+            })
+          }
+
+          if (cat.$.domain === 'post_tag') {
+            postTags.push({
+              _type: 'tag',
+              _ref: generateTagId(cat.$.nicename)
+            })
+          }
+        })
+      }
+
+      post.categories = postCategories;
+      post.tags = postTags;
+
       posts.push(post)
     })
 
@@ -107,7 +153,8 @@ async function buildJSONfromStream (stream) {
         /* meta, */
         ...users,
         ...posts,
-        ...categories
+        ...categories,
+        ...tags
       ]
 
       return res(output)
