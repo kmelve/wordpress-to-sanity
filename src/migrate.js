@@ -72,7 +72,8 @@ async function buildJSONfromStream (stream) {
     xml.collect('wp:postmeta')
     xml.on('endElement: item', item => {
       const { title, category, link: permalink, description } = item
-      if (item['wp:post_type'] != 'post' && item['wp:post_type'] != 'page') { return }
+      if (item['wp:post_type'] !== 'post' && item['status'] !== 'publish') { return }
+ 
       const post = {
         _type: 'post',
         title,
@@ -104,7 +105,7 @@ async function buildJSONfromStream (stream) {
 
     xml.on('end', () => {
       const output = [
-        /* meta, */
+        meta, 
         ...users,
         ...posts,
         ...categories
@@ -115,10 +116,10 @@ async function buildJSONfromStream (stream) {
   })
 }
 
-async function main () {
-  const filename = './exampleData/alexoglou.xml'
-  const stream = await readFile(filename)
-  const output = await buildJSONfromStream(stream)
+ async function main () {
+   const filename = '../wp-posts.xml';
+   const stream = await readFile(filename)
+   const output = await buildJSONfromStream(stream)
   output.forEach(doc => log(JSON.stringify(doc, null, 0)))
 }
 
