@@ -1,4 +1,4 @@
-const Schema = require('@sanity/schema').default
+const { Schema } = require('@sanity/schema');
 
 module.exports = Schema.compile({
   name: 'myBlog',
