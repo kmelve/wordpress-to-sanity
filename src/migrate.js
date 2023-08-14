@@ -75,30 +75,53 @@ async function buildJSONfromStream (stream) {
     const posts = []
     xml.collect('wp:postmeta')
     xml.on('endElement: item', item => {
-      const { title, category, link: permalink, description } = item
+      const { title, category, description } = item
       if (item['wp:post_type'] !== 'post' && item['status'] !== 'publish') { return }
  
       const post = {
         _type: 'post',
         title,
+        _id: `post-${item['wp:post_id']}`,
+        title,
         slug: {
-          current: slugify(title, { lower: true })
+          current: item['wp:post_name']
         },
-        categories: [
-          {
-            _type: 'reference',
-            _ref: generateCategoryId(category.$.nicename)
-          }
-        ],
         description,
         body: parseBody(item['content:encoded']),
-        publishedAt: parseDate(item)
+        publishedAt: parseDate(item),
+        
         /* author: {
           _type: 'reference',
           _ref: users.find(user => user.slug.current === item['dc:creator'])._id
         },
         */
       }
+
+      const postCategories = [];
+      const postTags = [];
+
+      // Add categories and tags as arrays of references
+      if (category.length > 0) {
+        category.forEach(cat => {
+          if (cat.$.domain === 'category') {
+            postCategories.push({
+              _type: 'category',
+              _ref: generateCategoryId(cat.$.nicename)
+            })
+          }
+
+          if (cat.$.domain === 'post_tag') {
+            postTags.push({
+              _type: 'tag',
+              _ref: generateTagId(cat.$.nicename)
+            })
+          }
+        })
+      }
+
+      post.categories = postCategories;
+      post.tags = postTags;      
+   
       posts.push(post)
     })
 
@@ -109,7 +132,7 @@ async function buildJSONfromStream (stream) {
 
     xml.on('end', () => {
       const output = [
-        meta, 
+        // meta, 
         ...users,
         ...posts,
         ...categories
@@ -121,9 +144,9 @@ async function buildJSONfromStream (stream) {
 }
 
  async function main () {
-   const filename = '../wp-posts.xml';
-   const stream = await readFile(filename)
-   const output = await buildJSONfromStream(stream)
+  const filename = 'src/wp-posts.xml';
+  const stream = await readFile(filename);
+  const output = await buildJSONfromStream(stream);
   output.forEach(doc => log(JSON.stringify(doc, null, 0)))
 }
 
