@@ -45,8 +45,12 @@ async function buildJSONfromStream (stream) {
         _id: generateCategoryId(nicename),
         title: nicename
       }
-      categories.push(category)
-    })
+
+      if(!categories.find(({title})=> title === category.title)){
+        categories.push(category);
+      }
+    });
+
 
     /**
      * Get the users
