@@ -1,5 +1,5 @@
 const { JSDOM } = require('jsdom')
-const blockTools = require('@sanity/block-tools').default
+const blockTools = require('@sanity/block-tools')
 const sanitizeHTML = require('./sanitizeHTML')
 const defaultSchema = require('../../schema/defaultSchema')
 
@@ -7,25 +7,26 @@ const blockContentType = defaultSchema
   .get('blogPost')
   .fields.find(field => field.name === 'body').type
 
+
 function htmlToBlocks (html, options) {
   if (!html) {
     return []
   }
 
-  const blocks = blockTools.htmlToBlocks(sanitizeHTML(html), blockContentType, {
-    parseHtml: htmlContent => new JSDOM(htmlContent).window.document,
+  const blockOptions = {
+    parseHtml: htmlContent =>  new JSDOM(htmlContent).window.document,
     rules: [
       {
         deserialize (el, next, block) {
           // Special case for code blocks (wrapped in pre and code tag)
-          if (el.tagName.toLowerCase() !== 'pre') {
+          if (el.tagName?.toLowerCase() !== 'pre') {
             return undefined
           }
           const code = el.children[0]
           let text = ''
           if (code) {
             const childNodes =
-              code && code.tagName.toLowerCase() === 'code'
+              code && code.tagName?.toLowerCase() === 'code'
                 ? code.childNodes
                 : el.childNodes
             childNodes.forEach(node => {
@@ -56,10 +57,10 @@ function htmlToBlocks (html, options) {
           }
 
           if (
-            el.tagName.toLowerCase() === 'p' &&
+            el.tagName?.toLowerCase() === 'p' &&
             el.childNodes.length === 1 &&
             el.childNodes.tagName &&
-            el.childNodes[0].tagName.toLowerCase() === 'img'
+            el.childNodes[0].tagName?.toLowerCase() === 'img'
           ) {
             return block({
                 _sanityAsset: `image@${el.childNodes[0]
@@ -72,8 +73,15 @@ function htmlToBlocks (html, options) {
         }
       }
     ],
-  })
+  }
+try {
+  const blocks = blockTools.htmlToBlocks(sanitizeHTML(html), blockContentType,
+  blockOptions)
+
   return blocks
+} catch(e){
+    console.log(e)
+  }
 }
 
 module.exports = bodyHTML => htmlToBlocks(bodyHTML)

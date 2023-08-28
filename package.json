@@ -9,14 +9,14 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@sanity/block-tools": "^1.149.4",
-    "@sanity/client": "^1.149.7",
-    "@sanity/import": "^1.149.9",
-    "@sanity/schema": "^1.149.4",
-    "cheerio": "^1.0.0-rc.3",
-    "jsdom": "^16.2.2",
-    "sanitize-html": "^1.22.1",
-    "slugify": "^1.4.0",
+    "@sanity/block-tools": "^3.15.1",
+    "@sanity/client": "^6.4.6",
+    "@sanity/import": "^3.15.1",
+    "@sanity/schema": "^3.15.1",
+    "cheerio": "^1.0.0-rc.12",
+    "jsdom": "^22.1.0",
+    "sanitize-html": "^2.11.0",
+    "slugify": "^1.6.6",
     "xml-stream": "^0.4.5"
   },
   "devDependencies": {
